@@ -35,11 +35,25 @@ const getBugReports = () => {   //getBugReports returns all active Bug Reports
 
 const getBugReportById = (id) => {
     const myPromise = new Promise((resolve, reject) => {
-        MongoClient.connect(url, settings, function(err, client) {
+        MongoClient.connect(url, settings, async function(err, client) {
             if(err) {
                 reject(err);
             } else {
                 console.log("Connected to DB for READ one");
+                const db = client.db(dbName);
+                const collection = db.collection(colName);
+                try {
+                    const _id = new ObjectID(id);
+                    const result = await collection.findOne({_id});
+                    if(result) {
+                        resolve(result);
+                    } else {
+                        reject({ error: "ID not found in database" });
+                    }
+                    client.close();
+                } catch (err) {
+                    reject({ error: "ID must be in ObjectID format" });
+                }
             }
         });
     });
