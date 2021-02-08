@@ -70,14 +70,14 @@ const addBugReport = (bugReport) => {
                 console.log("Connected to db for CREATE");
                 const db = client.db(dbName);
                 const collection = db.collection(colName);
-                collection.insertOne(bugReport, (err, result) => {
-                    if(err) {
+                collection.insertOne(bugReport, (err, result) => {  //Attempt to insert the new bug report
+                    if(err) {   //if insertOne MongoDB function fails, reject the promise with an error message.
                         reject(err);
                     } else {
-                        let response = {insertedCount : result.insertedCount};
+                        let response = {insertedCount : result.insertedCount}; //Wrap the newly added bug report in an object with description
                         response.insertedItem = result.ops[0];
                         resolve(response);
-                        client.close();
+                        client.close(); //Make sure to end connection to database since we are done accessing it
                     }
                 });
             }
@@ -86,8 +86,46 @@ const addBugReport = (bugReport) => {
     return myPromise;
 }
 
+//Update (replace) a bug report
+const updateBugReport = (id, bugReport) => {
+    const myPromise = new Promise((resolve, reject) => {
+        if(bugReport.hasOwnProperty('_id')) {
+            reject({ error: "Request body cannot contain an _id since a MongoDB id is immutable. Please remove _id from request body."});
+        }
+        MongoClient.connect(url, settings, function(err, client) {
+            if(err) {
+                reject(err);
+            } else {
+                console.log("Connected to db for update (replace)");
+                try {
+                    const db = client.db(dbName);
+                    const collection = db.collection(colName);
+                    const bugId = { _id: ObjectID(id) }
+                    collection.replaceOne(bugId, bugReport, { upsert : true }, (err, result) => {
+                        if(err) {
+                            reject(err);
+                        } else {
+                            let trimmedResult = {
+                                modifiedItem : result.ops[0],
+                                modifiedCount : result.modifiedCount
+                            };
+                            trimmedResult.modifiedItem._id = id;
+                            resolve(trimmedResult);
+                            client.close();
+                        }
+                    });
+            } catch (err) {
+                reject({error: "Id given doesn't match ObjectID structure. Please give 24 hex character string."})
+            }
+            }
+        })
+    });
+    return myPromise;
+}
+
 module.exports = {
     getBugReports,
     getBugReportById,
-    addBugReport
+    addBugReport,
+    updateBugReport
 }

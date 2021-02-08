@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {getBugReports, getBugReportById, addBugReport} = require('../../data/bugReports');
+const {getBugReports, getBugReportById, addBugReport, updateBugReport} = require('../../data/bugReports');
 
 //Get Routers
 router.get("/", async (req, res) => {   //Get all active bug reports
@@ -37,5 +37,19 @@ router.post("/", async (req, res) => {
     }
 });
 
+//Put router (replaces current bugReport with new one)
+router.put("/:id", async (req, res) => {
+    try {
+        const updatedReport = await updateBugReport(req.params.id, req.body);
+        res.send(updatedReport);
+    } catch (err) {
+        if(err.error) {
+            res.status(400).send(err.error);
+        } else {
+            console.log(err);
+            res.status(500).send("Internal server issue, check logs");
+        }
+    }
+});
 
 module.exports = router;
