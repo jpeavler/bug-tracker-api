@@ -52,7 +52,7 @@ const getBugReportById = (id) => {
                     }
                     client.close();
                 } catch (err) {
-                    reject({ error: "ID must be in ObjectID format" });
+                    reject({ error: "Id given doesn't match ObjectID structure. Please give 24 hex character string." });
                 }
             }
         });
@@ -118,10 +118,47 @@ const updateBugReport = (id, bugReport) => {
                         }
                     });
             } catch (err) { //if an error is thrown during the try, it should be an invalid id error.
-                reject({error: "Id given doesn't match ObjectID structure. Please give 24 hex character string."})
+                reject({ error: "Id given doesn't match ObjectID structure. Please use 24 hex character string." })
             }
             }
         })
+    });
+    return myPromise;
+}
+
+//Delete a bug report
+//param id: the id of the bug report you wish to delete
+const deleteBugReport = (id) => {
+    const myPromise = new Promise((resolve, reject) => {
+        MongoClient.connect(url, settings, async function(err, client) {
+            if(err) {
+                reject(err);
+            } else {
+                console.log("Connected to db for Delete");
+                const db = client.db(dbName);
+                const collection = db.collection(colName);
+                try {
+                    const _id = new ObjectID(id);
+                    collection.findOneAndDelete({_id}, function (err, data) {
+                        if(err) {
+                            reject(err);
+                        } else {
+                            if(data.lastErrorObject.n > 0) {
+                                let response = {
+                                    deletedItems : 1,
+                                    deletedItem : data.value
+                                }
+                                resolve(response);
+                            } else {
+                                resolve({ error: "ID doesn't exist in database" });
+                            }
+                        }
+                    });
+                } catch(err) {
+                    reject({ error: "Id given doesn't match ObjectID structure. Please use a 24 hex character string." });
+                }
+            }
+        });
     });
     return myPromise;
 }
@@ -130,5 +167,6 @@ module.exports = {
     getBugReports,
     getBugReportById,
     addBugReport,
-    updateBugReport
+    updateBugReport,
+    deleteBugReport
 }
