@@ -1,7 +1,7 @@
 const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 
-//Connection url, settings, and database/collection names
+//Connection url, settings, and database/collection names. Used to connect to right database
 const url = process.env.ATLAS_CONNECTION;
 const settings = {useUnifiedTopology: true};
 const dbName = 'bug_tracker';
@@ -61,10 +61,11 @@ const getBugReportById = (id) => {
 }
 
 //Create a new bug report function
+//param bugReport is an object describing the new bug report you wish to add to the database
 const addBugReport = (bugReport) => {
     const myPromise = new Promise((resolve, reject) => {
         MongoClient.connect(url, settings, function(err, client) {
-            if(err) {
+            if(err) {   //if database connection fails
                 reject(err);
             } else {
                 console.log("Connected to db for CREATE");
@@ -86,35 +87,37 @@ const addBugReport = (bugReport) => {
     return myPromise;
 }
 
-//Update (replace) a bug report
+//Update (replace) a bug report. If a valid id that doesn't exist already is given, a new bug report is created instead.
+//param id: a 24 character hexidecimal (0-9 and a-f allowed) string that matches the MongoDB _id
+//param bugReport: an object describing the updated bug report, please include all key-value pairs 
 const updateBugReport = (id, bugReport) => {
     const myPromise = new Promise((resolve, reject) => {
-        if(bugReport.hasOwnProperty('_id')) {
+        if(bugReport.hasOwnProperty('_id')) {   //If the bugReport contains the immutable _id, we want to tell the client it was a bad request
             reject({ error: "Request body cannot contain an _id since a MongoDB id is immutable. Please remove _id from request body."});
         }
-        MongoClient.connect(url, settings, function(err, client) {
-            if(err) {
-                reject(err);
+        MongoClient.connect(url, settings, function(err, client) {  //connect to database
+            if(err) {   //If something goes wrong with connecting
+                reject(err);    //send connection error
             } else {
                 console.log("Connected to db for update (replace)");
-                try {
+                try {   //attempt to update the bugReport
                     const db = client.db(dbName);
                     const collection = db.collection(colName);
-                    const bugId = { _id: ObjectID(id) }
+                    const bugId = { _id: ObjectID(id) };    //If invalid id structure, error will be thrown
                     collection.replaceOne(bugId, bugReport, { upsert : true }, (err, result) => {
-                        if(err) {
+                        if(err) {   //If replaceOne doesn't work, return an error via promise
                             reject(err);
                         } else {
-                            let trimmedResult = {
+                            let trimmedResult = {   //restructure response to included the updated count and the object itself
                                 modifiedItem : result.ops[0],
                                 modifiedCount : result.modifiedCount
                             };
-                            trimmedResult.modifiedItem._id = id;
+                            trimmedResult.modifiedItem._id = id;    //MongoDB's replaceOne return doesn't include an _id, we add it here
                             resolve(trimmedResult);
                             client.close();
                         }
                     });
-            } catch (err) {
+            } catch (err) { //if an error is thrown during the try, it should be an invalid id error.
                 reject({error: "Id given doesn't match ObjectID structure. Please give 24 hex character string."})
             }
             }
