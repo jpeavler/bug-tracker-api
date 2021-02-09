@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {getBugReports, getBugReportById, addBugReport, updateBugReport} = require('../../data/bugReports');
+const {getBugReports, getBugReportById, addBugReport, updateBugReport, deleteBugReport} = require('../../data/bugReports');
 
 //Get Routers
 router.get("/", async (req, res) => {   //Get all active bug reports
@@ -45,6 +45,20 @@ router.put("/:id", async (req, res) => {
     } catch (err) {
         if(err.error) {
             res.status(400).send(err.error);
+        } else {
+            console.log(err);
+            res.status(500).send("Internal server issue, check logs");
+        }
+    }
+});
+
+router.delete("/:id", async (req, res) => {
+    try {
+        const removedReport = await deleteBugReport(req.params.id);
+        res.send(removedReport);
+    } catch (err) {
+        if(err.error) {
+            res.status(400).send(err);
         } else {
             console.log(err);
             res.status(500).send("Internal server issue, check logs");
