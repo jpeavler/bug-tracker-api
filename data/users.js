@@ -95,8 +95,48 @@ const addUser = (user) => {
     return myPromise;
 }
 
+//Update (replace) a user. If a valid id that doesn't exist already is given, a new user is created instead.
+//param id: a 24 character hexidecimal (0-9 and a-f allowed) string that matches the MongoDB _id
+//param user: an object describing the updated user, please include all key-value pairs. Please exclude _id from this object
+const updateUser = (id, user) => {
+    const myPromise = new Promise((resolve, reject) => {
+        if(user.hasOwnProperty('_id')) {   //If the user contains the immutable _id, we want to tell the client it was a bad request
+            reject({ error: "Request body cannot contain an _id since a MongoDB id is immutable. Please remove _id from request body."});
+        }
+        MongoClient.connect(url, settings, function(err, client) {  //connect to database
+            if(err) {   //If something goes wrong with connecting
+                reject(err);    //send connection error
+            } else {
+                console.log("Connected to db for update (replace)");
+                try {   //attempt to update the user
+                    const db = client.db(dbName);
+                    const collection = db.collection(colName);
+                    const userId = { _id: ObjectID(id) };    //If invalid id structure, error will be thrown
+                    collection.replaceOne(userId, user, { upsert : true }, (err, result) => {
+                        if(err) {   //If replaceOne doesn't work, return an error via promise
+                            reject(err);
+                        } else {
+                            let trimmedResult = {   //restructure response to included the updated count and the object itself
+                                modifiedItem : result.ops[0],
+                                modifiedCount : result.modifiedCount
+                            };
+                            trimmedResult.modifiedItem._id = id;    //MongoDB's replaceOne return doesn't include an _id, we add it here
+                            resolve(trimmedResult);
+                            client.close();
+                        }
+                    });
+            } catch (err) { //if an error is thrown during the try, it should be an invalid id error.
+                reject({ error: "Id given doesn't match ObjectID structure. Please use 24 hex character string." })
+            }
+            }
+        })
+    });
+    return myPromise;
+}
+
 module.exports = {
     getUsers,
     getUserByMongoId,
-    addUser
+    addUser,
+    updateUser
 }
