@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUsers, getUserByMongoId } = require("../../data/users");
+const { getUsers, getUserByMongoId, addUser } = require("../../data/users");
 
 //Get Routers
 //Get all users
@@ -25,6 +25,16 @@ router.get("/:id", async (req, res) => {
             console.log(err);
             res.status(500).send("Internal server issues, check logs");
         }
+    }
+});
+//Post router. Used to add a new user
+router.post("/", async (req, res) => {
+    try {
+        const newUser = await addUser(req.body);
+        res.send(newUser);
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("Internal server issue, check logs");
     }
 });
 
