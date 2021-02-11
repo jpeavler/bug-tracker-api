@@ -40,7 +40,35 @@ const getUsers = () => {   //getUsers returns all users
     });
     return myPromise;
 }
+//Get a single user's data by MongoDB _id which is a 24 hex character string.
+const getUserByMongoId = (id) => {
+    const myPromise = new Promise((resolve, reject) => {
+        MongoClient.connect(url, settings, async function(err, client) {
+            if(err) {
+                reject(err);
+            } else {
+                console.log("Connected to DB for READ one");
+                const db = client.db(dbName);
+                const collection = db.collection(colName);
+                try {
+                    const _id = new ObjectID(id);
+                    const result = await collection.findOne({_id}); //look for the user with the requested Mongo ObjectID
+                    if(result) {    //If the user with the requested id is found
+                        resolve(result);    //Resolve the promise with the user with the given id
+                    } else {    //If no user is found by findOne
+                        reject({ error: "ID not found in database" }); //Notify the API with an error message
+                    }
+                    client.close();
+                } catch (err) { //If trying to create a new ObjectID object throws an error, tell the client to send the right id structure
+                    reject({ error: "Id given doesn't match ObjectID structure. Please give 24 hex character string." });
+                }
+            }
+        });
+    });
+    return myPromise;
+}
 
 module.exports = {
-    getUsers
+    getUsers,
+    getUserByMongoId
 }
