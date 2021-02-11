@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUsers, getUserByMongoId, addUser, updateUser } = require("../../data/users");
+const { getUsers, getUserByMongoId, addUser, updateUser, deleteUser } = require("../../data/users");
 
 //Get Routers
 //Get all users
@@ -38,7 +38,7 @@ router.post("/", async (req, res) => {
     }
 });
 
-//Put router (replaces current bugReport with new one)
+//Put router (replaces current user with new one)
 router.put("/:id", async (req, res) => {
     try {
         const updatedUser = await updateUser(req.params.id, req.body);
@@ -47,6 +47,20 @@ router.put("/:id", async (req, res) => {
         if(err.error) { //If the error was caused by a bad request, let them know.
             res.status(400).send(err.error);
         } else {    //If the error was caused by bad server code.
+            console.log(err);
+            res.status(500).send("Internal server issue, check logs");
+        }
+    }
+});
+//Delete router. Removes a user based on the matching MongoDB _id
+router.delete("/:id", async (req, res) => {
+    try {
+        const removedUser = await deleteUser(req.params.id);
+        res.send(removedUser);
+    } catch (err) {
+        if(err.error) {
+            res.status(400).send(err.error);
+        } else {
             console.log(err);
             res.status(500).send("Internal server issue, check logs");
         }
