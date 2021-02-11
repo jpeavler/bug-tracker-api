@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUsers, getUserByMongoId, addUser } = require("../../data/users");
+const { getUsers, getUserByMongoId, addUser, updateUser } = require("../../data/users");
 
 //Get Routers
 //Get all users
@@ -35,6 +35,21 @@ router.post("/", async (req, res) => {
     } catch (err) {
         console.log(err);
         res.status(500).send("Internal server issue, check logs");
+    }
+});
+
+//Put router (replaces current bugReport with new one)
+router.put("/:id", async (req, res) => {
+    try {
+        const updatedUser = await updateUser(req.params.id, req.body);
+        res.send(updatedUser);
+    } catch (err) {
+        if(err.error) { //If the error was caused by a bad request, let them know.
+            res.status(400).send(err.error);
+        } else {    //If the error was caused by bad server code.
+            console.log(err);
+            res.status(500).send("Internal server issue, check logs");
+        }
     }
 });
 
