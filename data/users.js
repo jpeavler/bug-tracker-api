@@ -69,7 +69,7 @@ const getUserByMongoId = (id) => {
 }
 
 //Create a new user function
-//param bugReport is an object describing the new user you wish to add to the database
+//param user is an object describing the new user you wish to add to the database
 const addUser = (user) => {
     const myPromise = new Promise((resolve, reject) => {    //resolve handles the desired data, reject handles when something goes wrong.
         MongoClient.connect(url, settings, function(err, client) {
@@ -134,9 +134,47 @@ const updateUser = (id, user) => {
     return myPromise;
 }
 
+//Delete a user
+//param id: the MongoDB _id of the user you wish to delete
+const deleteUser = (id) => {
+    const myPromise = new Promise((resolve, reject) => {
+        MongoClient.connect(url, settings, async function(err, client) {    //client allows us to access the database and collection
+            if(err) {
+                reject(err);    //Notify frontend of connection issue if it occurs
+            } else {
+                console.log("Connected to db for Delete");
+                const db = client.db(dbName);
+                const collection = db.collection(colName);
+                try {
+                    const _id = new ObjectID(id);   //create an object matching the MongoDB _id in the database
+                    collection.findOneAndDelete({_id}, function (err, data) {   //data houses everything findOneAndDelete returns
+                        if(err) {
+                            reject(err);
+                        } else {
+                            if(data.lastErrorObject.n > 0) {    //data.lastErrorObject.n will exceed 0 if an item is deleted.
+                                let response = {
+                                    deletedItems : 1,
+                                    deletedItem : data.value
+                                }
+                                resolve(response);
+                            } else {
+                                resolve({ error: "ID doesn't exist in database" });
+                            }
+                        }
+                    });
+                } catch(err) {
+                    reject({ error: "Id given doesn't match ObjectID structure. Please use a 24 hex character string." });
+                }
+            }
+        });
+    });
+    return myPromise;
+}
+
 module.exports = {
     getUsers,
     getUserByMongoId,
     addUser,
-    updateUser
+    updateUser,
+    deleteUser
 }
